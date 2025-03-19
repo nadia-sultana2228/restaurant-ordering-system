@@ -12,7 +12,7 @@ pipeline {
             steps {
                 script {
                     git branch: 'master', 
-                        credentialsId: GIT_CREDENTIALS_ID, 
+                        credentialsId: 'github-token', 
                         url: 'https://github.com/nadia-sultana2228/restaurant-ordering-system.git'
                 }
             }
