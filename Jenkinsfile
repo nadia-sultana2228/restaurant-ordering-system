@@ -1,69 +1,64 @@
-       pipeline {
+pipeline {
     agent any
 
     environment {
-        REPO_URL = 'git@github.com:nadia-sultana2228/restaurant-ordering-system.git'
-        BRANCH = 'master'
-        FRONTEND_DIR = 'frontend'
-        BACKEND_DIR = 'backend'
-        EC2_USER = 'ubuntu'
-        EC2_HOST = '3.111.169.166'
-        SSH_KEY = credentials('ec2-ssh-key')  // Use Jenkins credentials ID
+        GIT_CREDENTIALS_ID = 'github-token' // Replace with your Jenkins GitHub token credentials ID
+        FRONTEND_DIR = '/var/www/restaurant-ordering-system/frontend'
+        BACKEND_DIR = '/var/www/restaurant-ordering-system/backend'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: "${BRANCH}", credentialsId: 'github-token', url: "${REPO_URL}"
+                script {
+                    git branch: 'master', 
+                        credentialsId: GIT_CREDENTIALS_ID, 
+                        url: 'https://github.com/nadia-sultana2228/restaurant-ordering-system.git'
+                }
             }
         }
 
         stage('Build Backend') {
             steps {
-                dir("${BACKEND_DIR}") {
-                    sh 'npm install'
-                    sh 'npm run build'
+                script {
+                    dir('backend') {
+                        sh 'npm install'
+                        sh 'npm run build'
+                    }
                 }
             }
         }
 
         stage('Build Frontend') {
             steps {
-                dir("${FRONTEND_DIR}") {
-                    sh 'npm install'
-                    sh 'npm run build'
+                script {
+                    dir('frontend') {
+                        sh 'npm install'
+                        sh 'npm run build'
+                    }
                 }
             }
         }
 
-        stage('Deploy Backend to EC2') {
+        stage('Deploy Backend') {
             steps {
-                sshagent(['ec2-ssh-key']) {
+                script {
                     sh """
-                    ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} <<EOF
-                    cd /var/www/restaurant-ordering-system/backend
-                    git pull origin ${BRANCH}
-                    npm install
-                    pm2 restart all
-                    exit
-                    EOF
+                    cd backend
+                    pm2 stop all || true
+                    pm2 start npm --name "restaurant-backend" -- run start
                     """
                 }
             }
         }
 
-        stage('Deploy Frontend to EC2') {
+        stage('Deploy Frontend') {
             steps {
-                sshagent(['ec2-ssh-key']) {
+                script {
                     sh """
-                    ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} <<EOF
-                    cd /var/www/restaurant-ordering-system/frontend
-                    git pull origin ${BRANCH}
-                    npm install
-                    npm run build
+                    sudo rm -rf $FRONTEND_DIR/*
+                    sudo cp -r frontend/build/* $FRONTEND_DIR/
                     sudo systemctl restart nginx
-                    exit
-                    EOF
                     """
                 }
             }
@@ -79,3 +74,5 @@
         }
     }
 }
+
+              
