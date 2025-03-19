@@ -8,7 +8,7 @@
         BACKEND_DIR = 'backend'
         EC2_USER = 'ubuntu'
         EC2_HOST = '3.111.169.166'
-        SSH_KEY = credentials('nginxkeypair')  // Use Jenkins credentials ID
+        SSH_KEY = credentials('ec2-ssh-key')  // Use Jenkins credentials ID
     }
 
     stages {
