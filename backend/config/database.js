@@ -1,18 +1,19 @@
-import mysql from "mysql2";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
 
-// create the connection to database
+dotenv.config(); // Load environment variables
 
-const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "db_restaurant"
-});
+const connectDB = async () => {
+    try {
+        const conn = await mongoose.connect(process.env.MONGO_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+        console.log("✅ MongoDB Connected Successfully!");
+    } catch (error) {
+        console.error("❌ MongoDB Connection Failed:", error.message);
+        process.exit(1);
+    }
+};
 
-
-db.connect(error => {
-  if (error) throw error;
-  console.log("Successfully connected to the database.");
-});
-
-export default db;
+export default connectDB;
