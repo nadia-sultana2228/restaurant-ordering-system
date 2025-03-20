@@ -2,62 +2,66 @@ pipeline {
     agent any
 
     environment {
-        NODE_VERSION = '18'  // Define Node.js version
-        FRONTEND_DIR = '/var/www/restaurant-ordering-system/frontend'  // Change if needed
-        BACKEND_DIR = '/var/www/restaurant-ordering-system/backend'
+        NODE_VERSION = '18.x'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                cleanWs()  // Clean workspace to avoid conflicts
-                checkout scm  // Automatically pulls the latest code
+                cleanWs()
+                checkout scm
             }
         }
 
         stage('Setup Node.js') {
             steps {
                 sh '''
-                    # Install Node.js & npm if not installed
-                    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+                    echo "Installing Node.js..."
+                    curl -fsSL https://deb.nodesource.com/setup_$NODE_VERSION | sudo -E bash -
                     sudo apt-get install -y nodejs
-                    node -v
-                    npm -v
+                '''
+            }
+        }
+
+        stage('Build Backend') {
+            steps {
+                sh '''
+                    echo "Building Backend..."
+                    cd backend
+                    npm install
+                    npm run build
                 '''
             }
         }
 
         stage('Deploy Backend') {
             steps {
-                dir("${BACKEND_DIR}") {
-                    sh '''
-                        npm install  # Install backend dependencies
-                        sudo npm install -g pm2  # Install PM2 globally
+                sh '''
+                    echo "Deploying Backend..."
+                    cd backend
+                    pm2 restart server.js || pm2 start server.js --name restaurant-backend
+                '''
+            }
+        }
 
-                        # Restart backend safely
-                        pm2 delete restaurant-backend || true  
-                        pm2 start index.js --name restaurant-backend  
-                        pm2 save  # Save PM2 process for reboot
-                    '''
-                }
+        stage('Build Frontend') {
+            steps {
+                sh '''
+                    echo "Building Frontend..."
+                    cd frontend
+                    npm install
+                    npm run build
+                '''
             }
         }
 
         stage('Deploy Frontend') {
             steps {
-                dir("${FRONTEND_DIR}") {
-                    sh '''
-                        npm install  # Install frontend dependencies
-                        npm run build  # Build frontend
-
-                        # If deploying on S3
-                        aws s3 sync dist/ s3://${S3_BUCKET} --delete  
-
-                        # If deploying on Nginx, copy files
-                        sudo cp -r dist/* /var/www/html/  
-                        sudo systemctl restart nginx  
-                    '''
-                }
+                sh '''
+                    echo "Deploying Frontend..."
+                    sudo cp -r frontend/dist/* /var/www/html/
+                    sudo systemctl restart nginx
+                '''
             }
         }
     }
