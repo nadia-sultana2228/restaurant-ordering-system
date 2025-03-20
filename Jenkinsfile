@@ -48,23 +48,20 @@ pipeline {
                 sh '''
                     echo "Deploying Backend..."
                     cd backend
-                    pm2 restart index.js || pm2 start index.js --name restaurant-backend
-                '''
+                    pm2 delete restaurant-backend || true
+                    pm2 start index.js --name restaurant-backend
+                    pm2 save
+                    '''
             }
         }
 
         stage('Build Frontend') {
             steps {
                 sh '''
-                    echo "Building Frontend..."
-                    cd frontend
-                    npm install
-
-                    if grep -q '"build"' package.json; then
-                        npm run build
-                    else
-                        echo "⚠️ No build script found in package.json, skipping build..."
-                    fi
+                echo "Building Frontend..."
+                cd frontend
+                npm install --legacy-peer-deps
+                npm run build
                 '''
             }
         }
