@@ -2,64 +2,38 @@ pipeline {
     agent any
 
     environment {
-        GIT_CREDENTIALS_ID = 'github-token' // Replace with your Jenkins GitHub token credentials ID
-        FRONTEND_DIR = '/var/www/restaurant-ordering-system/frontend'
-        BACKEND_DIR = '/var/www/restaurant-ordering-system/backend'
+        NODE_ENV = "production"
+        APP_DIR = "/var/www/restaurant-ordering-system/backend"
+        REPO_URL = "https://github.com/nadia-sultana2228/restaurant-ordering-system.git"
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Checkout Code') {
             steps {
                 script {
-                    git branch: 'master', 
-                        credentialsId: 'github-token', 
-                        url: 'https://github.com/nadia-sultana2228/restaurant-ordering-system.git'
+                    // Pull the latest code
+                    sh "cd $APP_DIR && git reset --hard && git pull origin main"
                 }
             }
         }
 
-        stage('Build Backend') {
+        stage('Install Dependencies') {
             steps {
                 script {
-                    dir('backend') {
-                        sh 'npm install'
-                        sh 'npm run build'
-                    }
+                    // Install npm dependencies
+                    sh "cd $APP_DIR && npm install"
                 }
             }
         }
 
-        stage('Build Frontend') {
+        stage('Restart Application') {
             steps {
                 script {
-                    dir('frontend') {
-                        sh 'npm install'
-                        sh 'npm run build'
-                    }
-                }
-            }
-        }
+                    // Stop the existing PM2 process
+                    sh "pm2 delete restaurant-backend || true"
 
-        stage('Deploy Backend') {
-            steps {
-                script {
-                    sh """
-                    cd backend
-                    pm2 stop all || true
-                    pm2 start npm --name "restaurant-backend" -- run start
-                    """
-                }
-            }
-        }
-
-        stage('Deploy Frontend') {
-            steps {
-                script {
-                    sh """
-                    sudo rm -rf $FRONTEND_DIR/*
-                    sudo cp -r frontend/build/* $FRONTEND_DIR/
-                    sudo systemctl restart nginx
-                    """
+                    // Start the application using PM2
+                    sh "cd $APP_DIR && pm2 start index.js --name 'restaurant-backend' --watch"
                 }
             }
         }
@@ -67,12 +41,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployment Successful!"
+            echo '✅ Deployment Successful!'
         }
         failure {
-            echo "❌ Deployment Failed!"
+            echo '❌ Deployment Failed! Check logs.'
         }
     }
 }
-
-              
