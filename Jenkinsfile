@@ -19,6 +19,8 @@ pipeline {
                     echo "Installing Node.js..."
                     curl -fsSL https://deb.nodesource.com/setup_$NODE_VERSION | sudo -E bash -
                     sudo apt-get install -y nodejs
+                    node -v
+                    npm -v
                 '''
             }
         }
@@ -29,7 +31,14 @@ pipeline {
                     echo "Building Backend..."
                     cd backend
                     npm install
-                    npm run build
+
+                    # Check if a build script exists before running it
+                    if grep -q '"build"' package.json; then
+                        echo "Running npm run build..."
+                        npm run build
+                    else
+                        echo "⚠️ No build script found in package.json, skipping build..."
+                    fi
                 '''
             }
         }
@@ -50,7 +59,12 @@ pipeline {
                     echo "Building Frontend..."
                     cd frontend
                     npm install
-                    npm run build
+
+                    if grep -q '"build"' package.json; then
+                        npm run build
+                    else
+                        echo "⚠️ No build script found in package.json, skipping build..."
+                    fi
                 '''
             }
         }
