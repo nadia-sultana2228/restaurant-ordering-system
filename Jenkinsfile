@@ -1,42 +1,19 @@
 pipeline {
     agent any
 
-    environment {
-        NODEJS_HOME = tool 'NodeJS 18'  // Ensure NodeJS is installed in Jenkins
-        PATH = "${NODEJS_HOME}/bin:${env.PATH}"
-    }
-
     stages {
-        stage('Clone Repository') {
+        stage('Checkout Code') {
             steps {
-                git 'https://github.com/nadia-sultana2228/restaurant-ordering-system.git'
+                git 'https://github.com/nadia-sultana2228/nginx-app.git'
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm install'
-            }
-        }
-
-        stage('Build Application') {
-            steps {
-                sh 'npm run build'
-            }
-        }
-
-        stage('Deploy to Server') {
+        stage('Deploy to Nginx') {
             steps {
                 sh '''
-                sudo cp -r * /var/www/restaurant-ordering-system/
+                sudo cp -r * /var/www/html/
                 sudo systemctl restart nginx
                 '''
-            }
-        }
-
-        stage('Restart Application') {
-            steps {
-                sh 'pm2 restart all || pm2 start npm -- start'
             }
         }
     }
