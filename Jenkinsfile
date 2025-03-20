@@ -48,7 +48,7 @@ pipeline {
                 sh '''
                     echo "Deploying Backend..."
                     cd backend
-                    pm2 restart index.json || pm2 start index.json --name restaurant-backend
+                    pm2 restart index.js || pm2 start index.js --name restaurant-backend
                 '''
             }
         }
