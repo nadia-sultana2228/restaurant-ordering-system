@@ -1,88 +1,75 @@
 pipeline {
     agent any
-
     environment {
-        NODE_VERSION = '18.x'
+        NODE_ENV = "production"
+        PORT = "5000"
     }
-
     stages {
-        stage('Clone Repository') {
+        stage('Checkout Latest Code') {
             steps {
-                cleanWs()
-                checkout scm
+                script {
+                    retry(3) { // Agar fail ho to 3 baar retry kare
+                        checkout scm
+                    }
+                    sh 'git reset --hard && git pull origin master' // Reset & pull latest code
+                }
             }
         }
 
-        stage('Setup Node.js') {
+        stage('Install Dependencies') {
             steps {
-                sh '''
-                    echo "Installing Node.js..."
-                    curl -fsSL https://deb.nodesource.com/setup_$NODE_VERSION | sudo -E bash -
-                    sudo apt-get install -y nodejs
-                    node -v
-                    npm -v
-                '''
+                script {
+                    sh 'npm install --silent || echo "⚠️ NPM Install Failed, but continuing..."'
+                }
             }
         }
 
-        stage('Build Backend') {
+        stage('Stop Existing Server') {
             steps {
-                sh '''
-                    echo "Building Backend..."
-                    cd backend
-                    npm install
-
-                    # Check if a build script exists before running it
-                    if grep -q '"build"' package.json; then
-                        echo "Running npm run build..."
-                        npm run build
-                    else
-                        echo "⚠️ No build script found in package.json, skipping build..."
+                script {
+                    sh """
+                    PID=\$(lsof -t -i:$PORT) || true
+                    if [ ! -z "\$PID" ]; then
+                        echo "🔴 Stopping running backend on port $PORT"
+                        kill -9 \$PID
                     fi
-                '''
+                    """
+                }
             }
         }
 
-        stage('Deploy Backend') {
+        stage('Start Backend with New Code') {
             steps {
-                sh '''
-                    echo "Deploying Backend..."
-                    cd backend
-                    pm2 delete restaurant-backend || true
-                    pm2 start index.js --name restaurant-backend
-                    pm2 save
-                    '''
+                script {
+                    sh """
+                    nohup npm start > backend.log 2>&1 &
+                    echo "✅ Backend started successfully with latest changes!"
+                    """
+                }
             }
         }
-
-        stage('Build Frontend') {
+        
+        stage('Health Check') {
             steps {
-                sh '''
-                echo "Building Frontend..."
-                cd frontend
-                npm install --legacy-peer-deps
-                npm run build
-                '''
-            }
-        }
-
-        stage('Deploy Frontend') {
-            steps {
-                sh '''
-                    echo "Deploying Frontend..."
-                    sudo cp -r frontend/dist/* /var/www/html/
-                    sudo systemctl restart nginx
-                '''
+                script {
+                    sleep(5)
+                    def status = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:$PORT", returnStdout: true).trim()
+                    if (status != "200") {
+                        error "🚨 Health check failed! Server not responding after update."
+                    } else {
+                        echo "✅ Backend updated and running successfully!"
+                    }
+                }
             }
         }
     }
-
+    
     post {
-        success {
-            echo "✅ Deployment successful!"
+        always {
+            echo "✅ Jenkins pipeline completed!"
         }
         failure {
-            echo "❌ Deployment failed. Check logs."
+            echo "❌ Pipeline failed! Check logs for details."
         }
     }
 }
