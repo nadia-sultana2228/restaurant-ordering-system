@@ -2,25 +2,22 @@ pipeline {
     agent any
 
     environment {
-        NODE_VERSION = '18'  // Node.js version
-        FRONTEND_DIR = '/var/www/restaurant-ordering-system/frontend'  
-        BACKEND_DIR = '/var/www/restaurant-ordering-system/backend'  
-        NGINX_DIR = '/var/www/html/'  // Nginx directory for frontend
+        NODE_VERSION = '18.x'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                cleanWs()  // Clean workspace to avoid conflicts
-                checkout scm  // Automatically pull the latest code
+                cleanWs()
+                checkout scm
             }
         }
 
         stage('Setup Node.js') {
             steps {
                 sh '''
-                    # Install Node.js & npm if not installed
-                    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+                    echo "Installing Node.js..."
+                    curl -fsSL https://deb.nodesource.com/setup_$NODE_VERSION | sudo -E bash -
                     sudo apt-get install -y nodejs
                     node -v
                     npm -v
@@ -28,35 +25,57 @@ pipeline {
             }
         }
 
-        stage('Deploy Backend') {
+        stage('Build Backend') {
             steps {
-                dir("${BACKEND_DIR}") {
-                    sh '''
-                        npm install  # Install backend dependencies
-                        sudo npm install -g pm2  # Install PM2 globally
+                sh '''
+                    echo "Building Backend..."
+                    cd backend
+                    npm install
 
-                        # Restart backend safely
-                        pm2 delete restaurant-backend || true  
-                        pm2 start index.js --name restaurant-backend  
-                        pm2 save  # Save PM2 process for reboot
-                    '''
-                }
+                    # Check if a build script exists before running it
+                    if grep -q '"build"' package.json; then
+                        echo "Running npm run build..."
+                        npm run build
+                    else
+                        echo "⚠️ No build script found in package.json, skipping build..."
+                    fi
+                '''
             }
         }
 
-        stage('Deploy Frontend to Nginx') {
+        stage('Deploy Backend') {
             steps {
-                dir("${FRONTEND_DIR}") {
-                    sh '''
-                        npm install  # Install frontend dependencies
-                        npm run build  # Build frontend
+                sh '''
+                    echo "Deploying Backend..."
+                    cd backend
+                    pm2 restart index.json || pm2 start index.json --name restaurant-backend
+                '''
+            }
+        }
 
-                        # Deploy frontend to Nginx
-                        sudo rm -rf ${NGINX_DIR}/*  # Remove old files
-                        sudo cp -r dist/* ${NGINX_DIR}  
-                        sudo systemctl restart nginx  # Restart Nginx to apply changes
-                    '''
-                }
+        stage('Build Frontend') {
+            steps {
+                sh '''
+                    echo "Building Frontend..."
+                    cd frontend
+                    npm install
+
+                    if grep -q '"build"' package.json; then
+                        npm run build
+                    else
+                        echo "⚠️ No build script found in package.json, skipping build..."
+                    fi
+                '''
+            }
+        }
+
+        stage('Deploy Frontend') {
+            steps {
+                sh '''
+                    echo "Deploying Frontend..."
+                    sudo cp -r frontend/dist/* /var/www/html/
+                    sudo systemctl restart nginx
+                '''
             }
         }
     }

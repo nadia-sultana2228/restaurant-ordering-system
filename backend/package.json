@@ -8,7 +8,7 @@
     "prestart": "npm install",  
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "build": "echo 'Building API...'",
+    "build": "echo 'No build necessary for backend'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
