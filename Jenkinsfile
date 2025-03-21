@@ -1,91 +1,20 @@
 pipeline {
     agent any
 
-    environment {
-        NODE_VERSION = '18.x'
-    }
-
     stages {
-        stage('Clone Repository') {
+        stage('Checkout Code') {
             steps {
-                cleanWs()
-                checkout scm
+                git 'https://github.com/nadia-sultana2228/nginx-app.git'
             }
         }
 
-        stage('Setup Node.js') {
-            steps {
-                sh '''
-                    echo "Installing Node.js..."
-                    curl -fsSL https://deb.nodesource.com/setup_$NODE_VERSION | sudo -E bash -
-                    sudo apt-get install -y nodejs
-                    node -v
-                    npm -v
-                '''
-            }
-        }
-
-        stage('Build Backend') {
+        stage('Deploy to Nginx') {
             steps {
                 sh '''
-                    echo "Building Backend..."
-                    cd backend
-                    npm install
-
-                    # Check if a build script exists before running it
-                    if grep -q '"build"' package.json; then
-                        echo "Running npm run build..."
-                        npm run build
-                    else
-                        echo "⚠️ No build script found in package.json, skipping build..."
-                    fi
+                sudo cp -r * /var/www/html/
+                sudo systemctl restart nginx
                 '''
             }
-        }
-
-        stage('Deploy Backend') {
-            steps {
-                sh '''
-                    echo "Deploying Backend..."
-                    cd backend
-                    pm2 restart index.js || pm2 start index.js --name restaurant-backend
-                '''
-            }
-        }
-
-        stage('Build Frontend') {
-            steps {
-                sh '''
-                    echo "Building Frontend..."
-                    cd frontend
-                    npm install
-
-                    if grep -q '"build"' package.json; then
-                        npm run build
-                    else
-                        echo "⚠️ No build script found in package.json, skipping build..."
-                    fi
-                '''
-            }
-        }
-
-        stage('Deploy Frontend') {
-            steps {
-                sh '''
-                    echo "Deploying Frontend..."
-                    sudo cp -r frontend/dist/* /var/www/html/
-                    sudo systemctl restart nginx
-                '''
-            }
-        }
-    }
-
-    post {
-        success {
-            echo "✅ Deployment successful!"
-        }
-        failure {
-            echo "❌ Deployment failed. Check logs."
         }
     }
 }
