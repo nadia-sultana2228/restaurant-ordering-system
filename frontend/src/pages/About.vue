@@ -9,7 +9,7 @@
             <div class="about-content">
                 <img src="../assets/images/taco-chefcartoon.png" alt="">
                 <div class="about-content-text">
-                    <p>Our restaurant nFood was founded by nadia (a 5 Michelin stars chef) in 2002 in Vietnam. After
+                    <p>Our restaurant nadiFood was founded by Nadia (a 5 Michelin stars chef) in 2002 in Vietnam. After
                         that, thanks to the support of our customers, our brand has been popularized globally in markets
                         such as Australia, USA, Canada, UK, France, Germany, Belgium, Russia, China, Japan,
                         Singapore, ... Mexican-style meals, the products that we deliver to customers are always the
