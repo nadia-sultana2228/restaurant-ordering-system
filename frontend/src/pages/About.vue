@@ -9,11 +9,9 @@
             <div class="about-content">
                 <img src="../assets/images/taco-chefcartoon.png" alt="">
                 <div class="about-content-text">
-<<<<<<< HEAD
-                    <p>Our restaurant NFood was founded by Quang (a 5 Michelin stars chef) in 2002 in Vietnam. After
-=======
-                    <p>Our restaurant nFood was founded by nadia (a 5 Michelin stars chef) in 2002 in Vietnam. After
->>>>>>> 3c53eccbd837c8a69b3072819fae6baf5b52d4be
+
+                    <p>Our restaurant NFood was founded by Quang (a 5 Michelin stars chef) in 2002 in Vietnam. After      
+
                         that, thanks to the support of our customers, our brand has been popularized globally in markets
                         such as Australia, USA, Canada, UK, France, Germany, Belgium, Russia, China, Japan,
                         Singapore, ... Mexican-style meals, the products that we deliver to customers are always the
